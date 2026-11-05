@@ -90,22 +90,27 @@ flowchart LR
 
 ## Переменные окружения
 
-| Переменная                | Назначение                                                   |
-| ------------------------- | ------------------------------------------------------------ |
-| `DATABASE_URL`            | `file:./dev.db` для SQLite; PostgreSQL URL в Vercel          |
-| `AUTH_SECRET`             | Случайный секрет от 32 символов, обязателен в production     |
-| `DEMO_LOGIN_ENABLED`      | `true` разрешает публичный demo-вход; `false` требует пароль |
-| `ADMIN_PASSWORD`          | Пароль менеджера при отключённом demo-входе                  |
-| `APP_URL`                 | Публичный origin, например `https://your-app.vercel.app`     |
-| `OPENAI_API_KEY`          | Ключ внешнего ИИ; без ключа работает локальная база          |
-| `OPENAI_BASE_URL`         | OpenAI-compatible URL с `/v1`, без завершающего `/`          |
-| `OPENAI_MODEL`            | Идентификатор модели провайдера                              |
-| `TELEGRAM_BOT_TOKEN`      | Токен BotFather                                              |
-| `TELEGRAM_WEBHOOK_SECRET` | Секрет входящего Telegram webhook                            |
-| `CRM_WEBHOOK_URL`         | HTTPS-адрес приёмника новых заявок                           |
-| `CRM_WEBHOOK_SECRET`      | Общий секрет HMAC-SHA256                                     |
+| Переменная                | Назначение                                                                  |
+| ------------------------- | --------------------------------------------------------------------------- |
+| `DATABASE_URL`            | `file:./dev.db` для SQLite; PostgreSQL URL в Vercel                         |
+| `AUTH_SECRET`             | Случайный секрет от 32 символов, обязателен в production                    |
+| `DEMO_LOGIN_ENABLED`      | `true` разрешает публичный demo-вход; `false` требует пароль                |
+| `ADMIN_PASSWORD`          | Пароль менеджера при отключённом demo-входе                                 |
+| `AUTH_SESSION_VERSION`    | Измените для принудительного отзыва всех сессий                             |
+| `INIT_DEMO_DATA`          | Docker: однократное наполнение пустой БД при true                           |
+| `TRUSTED_PROXY_SECRET`    | Серверный секрет 32+ символов для доверенного proxy; пустой — direct bucket |
+| `APP_URL`                 | Публичный origin, например `https://your-app.vercel.app`                    |
+| `OPENAI_API_KEY`          | Ключ внешнего ИИ; без ключа работает локальная база                         |
+| `OPENAI_BASE_URL`         | OpenAI-compatible URL с `/v1`, без завершающего `/`                         |
+| `OPENAI_MODEL`            | Идентификатор модели провайдера                                             |
+| `TELEGRAM_BOT_TOKEN`      | Токен BotFather                                                             |
+| `TELEGRAM_WEBHOOK_SECRET` | Секрет входящего Telegram webhook                                           |
+| `CRM_WEBHOOK_URL`         | HTTPS-адрес приёмника новых заявок                                          |
+| `CRM_WEBHOOK_SECRET`      | Общий секрет HMAC-SHA256                                                    |
 
 Переменные хранятся только на сервере. Измените `.env` и перезапустите приложение. Панель интеграций показывает наличие настройки, но не проверяет доступность провайдера.
+
+Для SQLite приложение использует одно соединение Prisma, чтобы параллельные короткие транзакции не конкурировали за file lock. PostgreSQL использует настройки своего URL.
 
 ## Docker
 
