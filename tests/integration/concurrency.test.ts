@@ -11,6 +11,7 @@ import { db } from "../../src/lib/db";
 import { addClientMessage } from "../../src/services/conversations";
 import { saveContact } from "../../src/services/leads";
 import { POST } from "../../src/app/api/chat/route";
+import { POST as telegramPost } from "../../src/app/api/telegram/route";
 
 function seed() {
   execFileSync(process.execPath, ["prisma/seed.ts"], {
@@ -98,6 +99,63 @@ it.each(["client", "manager", "manager-return-to-bot"])(
       expect(answers[0].text).toContain("Передаю диалог оператору");
   },
 );
+
+it("Telegram не отправляет старый ответ после handoff или нового сообщения оператору", async () => {
+  const conversation = await db.conversation.create({
+    data: {
+      telegramId: "987654321",
+      messages: { create: { role: "assistant", text: "Старый ответ" } },
+    },
+  });
+  vi.stubEnv("TELEGRAM_BOT_TOKEN", "local-test");
+  vi.stubEnv("TELEGRAM_WEBHOOK_SECRET", "local-test-secret");
+  vi.stubEnv("OPENAI_API_KEY", "local-test");
+  const entered = deferred<void>();
+  const response = deferred<Response>();
+  const sent: string[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((url: string, options: RequestInit) => {
+      if (url.startsWith("https://api.telegram.org/")) {
+        sent.push(JSON.parse(options.body as string).text);
+        return Promise.resolve(new Response("{}"));
+      }
+      entered.resolve();
+      return response.promise;
+    }),
+  );
+  const request = (updateId: number) =>
+    new Request("http://localhost/api/telegram", {
+      method: "POST",
+      headers: { "x-telegram-bot-api-secret-token": "local-test-secret" },
+      body: JSON.stringify({
+        update_id: updateId,
+        message: {
+          chat: { id: 987654321, type: "private" },
+          text: "Сколько стоит?",
+        },
+      }),
+    });
+  const pending = telegramPost(request(9001));
+  await entered.promise;
+  await db.conversation.update({
+    where: { id: conversation.id },
+    data: { mode: "operator", revision: { increment: 1 } },
+  });
+  response.resolve(
+    Response.json({
+      choices: [{ message: { content: "Непроверенный ответ" } }],
+    }),
+  );
+  expect((await pending).status).toBe(200);
+  expect((await telegramPost(request(9002))).status).toBe(200);
+  expect(sent).toEqual([]);
+  expect(
+    await db.message.count({
+      where: { conversationId: conversation.id, role: "assistant" },
+    }),
+  ).toBe(1);
+});
 
 it("8 параллельных HTTP-запросов возвращают один лид, одно подтверждение и одну постановку доставки", async () => {
   const conversation = await db.conversation.create({ data: {} });

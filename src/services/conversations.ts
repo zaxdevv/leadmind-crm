@@ -11,13 +11,13 @@ export async function addClientMessage(conversationId: string, text: string) {
     await tx.message.create({ data: { conversationId, role: "user", text } });
     return current;
   });
-  if (conversation.mode === "operator") return;
+  if (conversation.mode === "operator") return null;
   const doc = findDocument(text, await db.document.findMany());
   const handoff = wantsOperator(text) || !doc;
   const reply = handoff
     ? "Передаю диалог оператору. Он увидит всю переписку. Можете оставить контакт, чтобы мы связались с вами."
     : await groundedAnswer(doc!);
-  await db.$transaction(async (tx) => {
+  return db.$transaction(async (tx) => {
     const claimed = await tx.conversation.updateMany({
       where: {
         id: conversationId,
@@ -30,8 +30,8 @@ export async function addClientMessage(conversationId: string, text: string) {
         topic: doc?.title || conversation.topic,
       },
     });
-    if (!claimed.count) return;
-    await tx.message.create({
+    if (!claimed.count) return null;
+    return tx.message.create({
       data: {
         conversationId,
         role: "assistant",

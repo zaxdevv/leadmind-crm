@@ -48,13 +48,8 @@ export async function POST(request: Request) {
           "/demo",
       );
     else if (text) {
-      await addClientMessage(conversation.id, text);
-      const reply = await db.message.findFirst({
-        where: { conversationId: conversation.id, role: "assistant" },
-        orderBy: { createdAt: "desc" },
-      });
-      if (reply && conversation.mode !== "operator")
-        await sendTelegram(telegramId, reply.text);
+      const reply = await addClientMessage(conversation.id, text);
+      if (reply) await sendTelegram(telegramId, reply.text);
     }
     await db.telegramUpdate.create({ data: { id: update.update_id } });
     return Response.json({ ok: true });
