@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.env
+.env.*
+*.db
+prisma/*.db*
+output
+test-results
+playwright-report
+.playwright-cli

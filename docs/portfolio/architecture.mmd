@@ -1,0 +1,21 @@
+flowchart TB
+  Web[Публичный чат на сайте] --> Public[API чата / Zod / rate limit]
+  Telegram[Telegram] --> TG[Webhook / secret header / update ID]
+  Public --> Conversations[Сервис диалогов]
+  TG --> Conversations
+  Conversations --> Retrieval[Поиск по базе знаний]
+  Retrieval --> Local[Локальные ответы с источником]
+  Retrieval -. опционально .-> AI[OpenAI-compatible / извлечение предложений]
+  AI --> Guard[Проверка предложения по источнику]
+  Conversations --> DB[(Prisma / SQLite локально / PostgreSQL на сервере)]
+  Operator[CRM-панель] --> Session[HttpOnly cookie / HMAC / 8 часов]
+  Session --> Admin[API менеджера]
+  Admin --> DB
+  Admin --> Reply[Ответ оператора]
+  Reply --> Telegram
+  Reply --> Web
+  DB --> Analytics[Метрики и графики из БД]
+  Public --> Leads[Квалификация и заявка с согласием]
+  Leads --> DB
+  Leads --> Hook[CRM webhook / HMAC-SHA256]
+  Leads --> Sheets[Демо Google Sheets / CSV]
