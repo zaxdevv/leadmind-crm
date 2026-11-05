@@ -1,6 +1,6 @@
 # Проверка LeadMind CRM
 
-Дата: 5 ноября 2026. Windows, Node.js 26.13.0, npm 11.20.0. Production-сервер Next.js, Chromium через Playwright. В CI и Docker выбран Node 22 LTS; локально Docker Engine недоступен.
+Дата: 5 ноября 2026. Windows, Node.js 26.13.0, npm 11.20.0. Production-сервер Next.js, Chromium через Playwright. В CI и Docker выбран Node 22.23.4; локально Docker Engine недоступен. Контейнер проверен в GitHub Actions на Linux.
 
 | Проверка                                   | Результат                                                                      |
 | ------------------------------------------ | ------------------------------------------------------------------------------ |
@@ -17,7 +17,7 @@
 | `npm run format:check`                     | Успешно                                                                        |
 | `npm audit`                                | 0 уязвимостей                                                                  |
 | `docker compose config --quiet`            | Конфигурация валидна                                                           |
-| Docker runtime                             | Не проверялся: Docker Engine выключен                                          |
+| Docker runtime                             | Успешно в CI: сборка, запуск с новым volume, UID 1000, доступность /demo       |
 | Скриншоты                                  | Семь PNG из production-сборки, проверены визуально                             |
 | Ошибки браузера при съёмке                 | 0 page errors, 0 console errors                                                |
 

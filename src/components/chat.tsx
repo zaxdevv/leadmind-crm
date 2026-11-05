@@ -31,6 +31,7 @@ export function Chat({ name, greeting }: { name: string; greeting: string }) {
   const [contactOpen, setContactOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const bottom = useRef<HTMLDivElement>(null);
+  const conversationToken = chat?.token;
   async function submit(body: object) {
     setBusy(true);
     setError("");
@@ -57,14 +58,20 @@ export function Chat({ name, greeting }: { name: string; greeting: string }) {
         .catch(() => localStorage.removeItem("leadmind-chat"));
   }, []);
   useEffect(() => {
-    if (!chat) return;
+    if (!conversationToken) return;
+    let active = true;
     const timer = setInterval(() => {
-      api<ChatData>("/api/chat", "POST", { token: chat.token })
-        .then(setChat)
+      api<ChatData>("/api/chat", "POST", { token: conversationToken })
+        .then((result) => {
+          if (active) setChat(result);
+        })
         .catch(() => {});
     }, 5000);
-    return () => clearInterval(timer);
-  }, [chat?.token]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [conversationToken]);
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [chat?.messages.length, busy]);

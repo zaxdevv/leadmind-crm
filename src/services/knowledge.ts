@@ -45,7 +45,6 @@ export async function groundedAnswer(doc: Document) {
     if (!response.ok) return doc.body;
     const payload = await response.json();
     const answer = payload.choices?.[0]?.message?.content;
-    // Extractive validation keeps even a misbehaving provider inside the supplied source.
     if (
       typeof answer === "string" &&
       answer.length > 20 &&
@@ -55,7 +54,7 @@ export async function groundedAnswer(doc: Document) {
     )
       return answer;
   } catch {
-    /* The local source remains available when the provider times out. */
+    return doc.body;
   }
   return doc.body;
 }
