@@ -1,21 +1,22 @@
 import { cookies } from "next/headers";
 import { checkOrigin, errorResponse, jsonBody, HttpError } from "@/lib/http";
-import { equals, rateLimit, sessionToken } from "@/lib/security";
+import {
+  demoLoginEnabled,
+  equals,
+  rateLimit,
+  rateLimitClient,
+  sessionToken,
+} from "@/lib/security";
 export async function POST(request: Request) {
   try {
     checkOrigin(request);
     if (
-      !rateLimit(
-        `login:${request.headers.get("x-forwarded-for") || "local"}`,
-        10,
-      )
+      !rateLimit("login:installation", 30) ||
+      !rateLimit(`login:${rateLimitClient(request)}`, 10)
     )
       throw new HttpError(429, "Попробуйте через минуту");
     const body = await jsonBody(request);
-    const demo =
-      process.env.DEMO_LOGIN_ENABLED === "true" ||
-      (process.env.NODE_ENV !== "production" &&
-        process.env.DEMO_LOGIN_ENABLED !== "false");
+    const demo = demoLoginEnabled();
     if (
       !demo &&
       (!process.env.ADMIN_PASSWORD ||

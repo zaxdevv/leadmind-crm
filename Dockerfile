@@ -10,4 +10,4 @@ ENV DATABASE_URL=file:/data/leadmind.db
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 EXPOSE 3000
-CMD ["sh", "-c", "npm run setup && npm start"]
+CMD ["sh", "-c", "npm run db:migrate && if [ \"${INIT_DEMO_DATA:-false}\" = \"true\" ]; then npm run db:seed; fi && npm start"]

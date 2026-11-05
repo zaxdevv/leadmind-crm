@@ -3,33 +3,43 @@ import { wantsOperator } from "@/lib/domain";
 import { findDocument, groundedAnswer } from "./knowledge";
 export async function addClientMessage(conversationId: string, text: string) {
   const started = Date.now();
-  const conversation = await db.conversation.findUniqueOrThrow({
-    where: { id: conversationId },
+  const conversation = await db.$transaction(async (tx) => {
+    const current = await tx.conversation.update({
+      where: { id: conversationId },
+      data: { revision: { increment: 1 } },
+    });
+    await tx.message.create({ data: { conversationId, role: "user", text } });
+    return current;
   });
-  await db.message.create({ data: { conversationId, role: "user", text } });
   if (conversation.mode === "operator") return;
   const doc = findDocument(text, await db.document.findMany());
   const handoff = wantsOperator(text) || !doc;
   const reply = handoff
     ? "Передаю диалог оператору. Он увидит всю переписку. Можете оставить контакт, чтобы мы связались с вами."
     : await groundedAnswer(doc!);
-  await db.$transaction([
-    db.conversation.update({
-      where: { id: conversationId },
+  await db.$transaction(async (tx) => {
+    const claimed = await tx.conversation.updateMany({
+      where: {
+        id: conversationId,
+        mode: "bot",
+        revision: conversation.revision,
+      },
       data: {
-        mode: handoff ? "operator" : "bot",
+        ...(handoff ? { mode: "operator" } : {}),
+        revision: { increment: 1 },
         topic: doc?.title || conversation.topic,
       },
-    }),
-    db.message.create({
+    });
+    if (!claimed.count) return;
+    await tx.message.create({
       data: {
         conversationId,
         role: "assistant",
         text: reply,
-        sourceId: doc?.id,
-        sourceTitle: doc?.title,
+        sourceId: handoff ? null : doc?.id,
+        sourceTitle: handoff ? null : doc?.title,
         responseMs: Date.now() - started,
       },
-    }),
-  ]);
+    });
+  });
 }

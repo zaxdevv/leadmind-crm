@@ -33,89 +33,107 @@ const materials = [
   },
 ];
 async function seed() {
-  for (const doc of materials)
-    await db.document.upsert({
-      where: { id: doc.id },
-      create: doc,
-      update: {},
-    });
-  await db.settings.upsert({ where: { id: "bot" }, create: {}, update: {} });
-  if (await db.conversation.count()) return;
-  const names = [
-    "Анна Смирнова",
-    "Михаил Волков",
-    "Елена Морозова",
-    "Артём Соколов",
-    "Ольга Лебедева",
-    "Дмитрий Орлов",
-    "Мария Кузнецова",
-    "Илья Попов",
-  ];
-  const companies = [
-    "Студия Форма",
-    "Мебельное бюро",
-    "Школа Практика",
-    "Сервис Точка",
-    "Клиника Вектор",
-    "Мастерская Север",
-    "Ателье Линия",
-    "Бюро Маршрут",
-  ];
-  const statuses = ["new", "working", "qualified", "won", "closed"];
-  for (let i = 0; i < 32; i++) {
-    const createdAt = new Date(
-      Date.now() - (6 - (i % 7)) * 86400_000 - (i % 6) * 3600_000,
-    );
-    const doc = materials[i % materials.length];
-    await db.conversation.create({
-      data: {
-        channel: i % 3 === 0 ? "Telegram" : "Сайт",
-        mode: i % 7 === 0 ? "operator" : "bot",
-        topic: doc.title,
-        createdAt,
-        messages: {
-          create: [
-            {
-              role: "user",
-              text: [
-                "Сколько стоит бот для нашей компании?",
-                "Хотим запустить автоматизацию продаж. Какие сроки?",
-                "Можно подключить Telegram и CRM?",
-                "Как устроена поддержка?",
-                "Где хранятся данные клиентов?",
-              ][i % 5],
-              createdAt,
-            },
-            {
-              role: "assistant",
-              text: doc.body,
-              sourceId: doc.id,
-              sourceTitle: doc.title,
-              responseMs: 850 + i * 37,
-              createdAt: new Date(createdAt.getTime() + 850 + i * 37),
-            },
-          ],
-        },
-        ...(i < 20
-          ? {
-              lead: {
-                create: {
-                  name: names[i % 8],
-                  company: companies[i % 8],
-                  contact: `demo${i + 1}@example.com`,
-                  status: statuses[i % 5],
-                  priority: i % 3 === 0 ? "hot" : i % 3 === 1 ? "warm" : "cold",
-                  tags: i % 2 ? "Автоматизация, Telegram" : "Сайт, CRM",
-                  notes:
-                    "Демонстрационная заявка. Обсудить задачи отдела продаж и согласовать время встречи.",
-                  consentAt: createdAt,
+  await db.$transaction(
+    async (db) => {
+      if (await db.initialization.findUnique({ where: { id: "demo-v1" } }))
+        return;
+      const existing =
+        (await db.conversation.count()) ||
+        (await db.document.count()) ||
+        (await db.settings.count());
+      await db.initialization.create({ data: { id: "demo-v1" } });
+      if (existing) return;
+      for (const doc of materials)
+        await db.document.upsert({
+          where: { id: doc.id },
+          create: doc,
+          update: {},
+        });
+      await db.settings.upsert({
+        where: { id: "bot" },
+        create: {},
+        update: {},
+      });
+      if (await db.conversation.count()) return;
+      const names = [
+        "Анна Смирнова",
+        "Михаил Волков",
+        "Елена Морозова",
+        "Артём Соколов",
+        "Ольга Лебедева",
+        "Дмитрий Орлов",
+        "Мария Кузнецова",
+        "Илья Попов",
+      ];
+      const companies = [
+        "Студия Форма",
+        "Мебельное бюро",
+        "Школа Практика",
+        "Сервис Точка",
+        "Клиника Вектор",
+        "Мастерская Север",
+        "Ателье Линия",
+        "Бюро Маршрут",
+      ];
+      const statuses = ["new", "working", "qualified", "won", "closed"];
+      for (let i = 0; i < 32; i++) {
+        const createdAt = new Date(
+          Date.now() - (6 - (i % 7)) * 86400_000 - (i % 6) * 3600_000,
+        );
+        const doc = materials[i % materials.length];
+        await db.conversation.create({
+          data: {
+            channel: i % 3 === 0 ? "Telegram" : "Сайт",
+            mode: i % 7 === 0 ? "operator" : "bot",
+            topic: doc.title,
+            createdAt,
+            messages: {
+              create: [
+                {
+                  role: "user",
+                  text: [
+                    "Сколько стоит бот для нашей компании?",
+                    "Хотим запустить автоматизацию продаж. Какие сроки?",
+                    "Можно подключить Telegram и CRM?",
+                    "Как устроена поддержка?",
+                    "Где хранятся данные клиентов?",
+                  ][i % 5],
                   createdAt,
                 },
-              },
-            }
-          : {}),
-      },
-    });
-  }
+                {
+                  role: "assistant",
+                  text: doc.body,
+                  sourceId: doc.id,
+                  sourceTitle: doc.title,
+                  responseMs: 850 + i * 37,
+                  createdAt: new Date(createdAt.getTime() + 850 + i * 37),
+                },
+              ],
+            },
+            ...(i < 20
+              ? {
+                  lead: {
+                    create: {
+                      name: names[i % 8],
+                      company: companies[i % 8],
+                      contact: `demo${i + 1}@example.com`,
+                      status: statuses[i % 5],
+                      priority:
+                        i % 3 === 0 ? "hot" : i % 3 === 1 ? "warm" : "cold",
+                      tags: i % 2 ? "Автоматизация, Telegram" : "Сайт, CRM",
+                      notes:
+                        "Демонстрационная заявка. Обсудить задачи отдела продаж и согласовать время встречи.",
+                      consentAt: createdAt,
+                      createdAt,
+                    },
+                  },
+                }
+              : {}),
+          },
+        });
+      }
+    },
+    { timeout: 30000 },
+  );
 }
 seed().finally(() => db.$disconnect());

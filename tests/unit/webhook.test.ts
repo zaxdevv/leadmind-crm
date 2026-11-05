@@ -2,13 +2,15 @@ import { createHmac } from "node:crypto";
 import { afterEach, expect, it, vi } from "vitest";
 import type { Lead } from "@prisma/client";
 const { record } = vi.hoisted(() => ({ record: vi.fn() }));
-vi.mock("@/lib/db", () => ({ db: { delivery: { create: record } } }));
+vi.mock("@/lib/db", () => ({ db: { delivery: { updateMany: record } } }));
 import { deliverLead } from "../../src/services/integrations";
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
   record.mockReset();
+  record.mockResolvedValue({ count: 1 });
 });
+record.mockResolvedValue({ count: 1 });
 const lead: Lead = {
   id: "lead-unit",
   conversationId: "conversation",
@@ -34,7 +36,8 @@ it("подписывает точное тело и передаёт ключ д
   );
   expect(options.headers["Idempotency-Key"]).toBe(lead.id);
   expect(record).toHaveBeenLastCalledWith({
-    data: { leadId: lead.id, adapter: "crm-webhook", status: "sent" },
+    where: { leadId: lead.id, adapter: "crm-webhook", status: "sending" },
+    data: { status: "sent" },
   });
 });
 it("сбой CRM отражается в журнале без потери локальной заявки", async () => {
@@ -43,6 +46,7 @@ it("сбой CRM отражается в журнале без потери ло
   vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
   await expect(deliverLead(lead)).resolves.toBeUndefined();
   expect(record).toHaveBeenLastCalledWith({
-    data: { leadId: lead.id, adapter: "crm-webhook", status: "failed" },
+    where: { leadId: lead.id, adapter: "crm-webhook", status: "sending" },
+    data: { status: "failed" },
   });
 });

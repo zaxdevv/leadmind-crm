@@ -89,7 +89,10 @@ async function handle(request: Request, context: Context) {
           .object({ mode: z.enum(["bot", "operator"]) })
           .parse(await jsonBody(request));
         return Response.json(
-          await db.conversation.update({ where: { id }, data: { mode } }),
+          await db.conversation.update({
+            where: { id },
+            data: { mode, revision: { increment: 1 } },
+          }),
         );
       }
       if (request.method === "POST") {

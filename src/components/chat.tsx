@@ -9,69 +9,13 @@ import {
   RotateCcw,
   CheckCheck,
 } from "lucide-react";
-import { api } from "@/lib/client";
-type Message = {
-  id: string;
-  role: string;
-  text: string;
-  sourceId: string | null;
-  sourceTitle: string | null;
-};
-type ChatData = {
-  id: string;
-  token: string;
-  mode: string;
-  messages: Message[];
-  lead: { id: string } | null;
-};
+import { useChat } from "./use-chat";
 export function Chat({ name, greeting }: { name: string; greeting: string }) {
-  const [chat, setChat] = useState<ChatData | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const { chat, busy, error, restoreState, restore, submit, reset } = useChat();
+  const unavailable = busy || restoreState !== "ready";
   const [contactOpen, setContactOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const bottom = useRef<HTMLDivElement>(null);
-  const conversationToken = chat?.token;
-  async function submit(body: object) {
-    setBusy(true);
-    setError("");
-    try {
-      const result = await api<ChatData>("/api/chat", "POST", {
-        token: chat?.token,
-        ...body,
-      });
-      setChat(result);
-      localStorage.setItem("leadmind-chat", result.token);
-      return true;
-    } catch (e) {
-      setError((e as Error).message);
-      return false;
-    } finally {
-      setBusy(false);
-    }
-  }
-  useEffect(() => {
-    const token = localStorage.getItem("leadmind-chat");
-    if (token)
-      api<ChatData>("/api/chat", "POST", { token })
-        .then(setChat)
-        .catch(() => localStorage.removeItem("leadmind-chat"));
-  }, []);
-  useEffect(() => {
-    if (!conversationToken) return;
-    let active = true;
-    const timer = setInterval(() => {
-      api<ChatData>("/api/chat", "POST", { token: conversationToken })
-        .then((result) => {
-          if (active) setChat(result);
-        })
-        .catch(() => {});
-    }, 5000);
-    return () => {
-      active = false;
-      clearInterval(timer);
-    };
-  }, [conversationToken]);
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [chat?.messages.length, busy]);
@@ -104,9 +48,8 @@ export function Chat({ name, greeting }: { name: string; greeting: string }) {
           aria-label="Новый диалог"
           title="Новый диалог"
           onClick={() => {
-            localStorage.removeItem("leadmind-chat");
-            setChat(null);
-            setError("");
+            reset();
+            setDraft("");
             setContactOpen(false);
           }}
         >
@@ -157,7 +100,7 @@ export function Chat({ name, greeting }: { name: string; greeting: string }) {
                   <button
                     className="chip"
                     key={text}
-                    disabled={busy}
+                    disabled={unavailable}
                     onClick={() => submit({ text })}
                   >
                     {text}
@@ -174,7 +117,7 @@ export function Chat({ name, greeting }: { name: string; greeting: string }) {
               </button>
               <button
                 className="text-link muted"
-                disabled={busy}
+                disabled={unavailable}
                 onClick={() => submit({ text: "Хочу поговорить с оператором" })}
               >
                 <UserRound size={14} />
@@ -246,7 +189,7 @@ export function Chat({ name, greeting }: { name: string; greeting: string }) {
               </a>
             </label>
             <div className="row">
-              <button disabled={busy}>Отправить заявку</button>
+              <button disabled={unavailable}>Отправить заявку</button>
               <button
                 type="button"
                 className="secondary"
@@ -257,6 +200,14 @@ export function Chat({ name, greeting }: { name: string; greeting: string }) {
             </div>
           </form>
         )}
+        {restoreState === "loading" && (
+          <p role="status">Восстанавливаем историю…</p>
+        )}
+        {restoreState === "failed" && (
+          <button type="button" onClick={() => void restore()}>
+            Повторить восстановление
+          </button>
+        )}
         {error && (
           <p className="error" role="alert">
             {error}
@@ -266,7 +217,9 @@ export function Chat({ name, greeting }: { name: string; greeting: string }) {
           className="chat-input"
           onSubmit={async (e) => {
             e.preventDefault();
-            if (draft.trim() && (await submit({ text: draft }))) setDraft("");
+            const sentDraft = draft;
+            if (sentDraft.trim() && (await submit({ text: sentDraft })))
+              setDraft((current) => (current === sentDraft ? "" : current));
           }}
         >
           <input
@@ -278,7 +231,7 @@ export function Chat({ name, greeting }: { name: string; greeting: string }) {
           />
           <button
             aria-label="Отправить сообщение"
-            disabled={busy || !draft.trim()}
+            disabled={unavailable || !draft.trim()}
           >
             <Send size={18} />
           </button>

@@ -1569,8 +1569,8 @@ tbody tr:hover {
 }
 .message > small:first-child {
   display: block;
-  font-size: 9px;
-  color: #8d97ac;
+  font-size: 12px;
+  color: #56627a;
   margin-bottom: 6px;
 }
 .message > div {
@@ -1599,8 +1599,8 @@ tbody tr:hover {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 9px;
-  color: #7186b3;
+  font-size: 12px;
+  color: #435f98;
   margin-top: 8px;
 }
 .chat-controls {
@@ -1661,8 +1661,8 @@ tbody tr:hover {
 .chat-footnote {
   display: block;
   text-align: center;
-  font-size: 8px;
-  color: #9da5b4;
+  font-size: 12px;
+  color: #56627a;
   margin-top: 11px;
 }
 .typing {
@@ -2199,7 +2199,7 @@ tbody tr:hover {
     font-size: 8px;
   }
   .chat-footnote {
-    font-size: 7px;
+    font-size: 12px;
   }
   .page-heading {
     align-items: flex-start;

@@ -22,8 +22,9 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm start > /tmp/leadmind.log 2>&1 &
-      - run: npx wait-on http://localhost:3000
+      - run: npx --yes wait-on@8.0.3 http://localhost:3000
       - run: npm run test:e2e
+      - run: node scripts/check-auth.mjs
       - name: Build container
         run: docker build --tag leadmind-ci .
       - name: Start container with a fresh database volume
@@ -33,12 +34,20 @@ jobs:
           --mount type=volume,src=leadmind-ci-data,dst=/data
           --env AUTH_SECRET="$AUTH_SECRET"
           --env DEMO_LOGIN_ENABLED=true
+          --env INIT_DEMO_DATA=true
           leadmind-ci
       - name: Verify unprivileged container and initialized database
         run: |
-          npx wait-on http://localhost:3001/demo --timeout 60000
+          npx --yes wait-on@8.0.3 http://localhost:3001/demo --timeout 60000
           test "$(docker exec leadmind-ci id -u)" = "1000"
           curl --fail http://localhost:3001/demo --output /dev/null
+      - name: Verify deleted knowledge and conversation survive restart and seed
+        run: |
+          node scripts/check-container.mjs write
+          docker restart leadmind-ci
+          npx --yes wait-on@8.0.3 http://localhost:3001/demo --timeout 60000
+          docker exec leadmind-ci npm run db:seed
+          node scripts/check-container.mjs read
       - name: Container diagnostics
         if: failure()
         run: docker logs leadmind-ci || true

@@ -2,10 +2,9 @@ import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { checkOrigin, errorResponse, HttpError, jsonBody } from "@/lib/http";
-import { rateLimit } from "@/lib/security";
-import { qualify } from "@/lib/domain";
+import { rateLimit, rateLimitClient } from "@/lib/security";
 import { addClientMessage } from "@/services/conversations";
-import { deliverLead } from "@/services/integrations";
+import { saveContact } from "@/services/leads";
 const contactSchema = z.object({
   name: z.string().trim().min(2).max(80),
   contact: z
@@ -24,8 +23,6 @@ const contactSchema = z.object({
 export async function POST(request: Request) {
   try {
     checkOrigin(request);
-    if (!rateLimit(`chat:${request.headers.get("x-forwarded-for") || "local"}`))
-      throw new HttpError(429, "Слишком много сообщений. Подождите минуту.");
     const body = z
       .object({
         token: z.string().max(100).optional(),
@@ -33,6 +30,14 @@ export async function POST(request: Request) {
         contact: contactSchema.optional(),
       })
       .parse(await jsonBody(request));
+    const reading = !!body.token && !body.text && !body.contact;
+    if (
+      !rateLimit(
+        `chat:${reading ? "read" : "write"}:${rateLimitClient(request)}`,
+        reading ? 600 : 60,
+      )
+    )
+      throw new HttpError(429, "Слишком много сообщений. Подождите минуту.");
     let conversation = body.token
       ? await db.conversation.findUnique({ where: { token: body.token } })
       : null;
@@ -53,34 +58,7 @@ export async function POST(request: Request) {
       });
     }
     if (body.text) await addClientMessage(conversation.id, body.text);
-    if (body.contact) {
-      const existing = await db.lead.findUnique({
-        where: { conversationId: conversation.id },
-      });
-      if (!existing) {
-        const messages = await db.message.findMany({
-          where: { conversationId: conversation.id, role: "user" },
-        });
-        const lead = await db.lead.create({
-          data: {
-            conversationId: conversation.id,
-            name: body.contact.name,
-            contact: body.contact.contact,
-            company: body.contact.company,
-            consentAt: new Date(),
-            priority: qualify(messages.map((m) => m.text).join(" ")),
-          },
-        });
-        await db.message.create({
-          data: {
-            conversationId: conversation.id,
-            role: "assistant",
-            text: "Спасибо! Заявка сохранена. Менеджер свяжется с вами в рабочее время: по будням с 10:00 до 19:00 по Москве.",
-          },
-        });
-        await deliverLead(lead);
-      }
-    }
+    if (body.contact) await saveContact(conversation.id, body.contact);
     return Response.json(
       await db.conversation.findUnique({
         where: { id: conversation.id },

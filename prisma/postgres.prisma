@@ -10,6 +10,7 @@ model Conversation {
   token String @unique @default(cuid())
   channel String @default("Сайт")
   mode String @default("bot")
+  revision Int @default(0)
   topic String @default("Общее")
   telegramId String? @unique
   createdAt DateTime @default(now())
@@ -56,11 +57,16 @@ model Settings {
   greeting String @default("Здравствуйте! Я Алекс, помощник Нова Системы. Помогу выбрать автоматизацию, расскажу о стоимости и подключении.")
 }
 model Delivery {
+  @@unique([leadId, adapter])
   id String @id @default(cuid())
   leadId String
   lead Lead @relation(fields:[leadId],references:[id],onDelete:Cascade)
   adapter String
   status String
+  createdAt DateTime @default(now())
+}
+model Initialization {
+  id String @id
   createdAt DateTime @default(now())
 }
 model TelegramUpdate {

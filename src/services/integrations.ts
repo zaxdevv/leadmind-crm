@@ -15,10 +15,12 @@ export function sheetsRow(lead: Lead) {
   ];
 }
 export async function deliverLead(lead: Lead) {
-  await db.delivery.create({
-    data: { leadId: lead.id, adapter: "sheets-demo", status: "prepared" },
-  });
   if (!process.env.CRM_WEBHOOK_URL || !process.env.CRM_WEBHOOK_SECRET) return;
+  const claim = await db.delivery.updateMany({
+    where: { leadId: lead.id, adapter: "crm-webhook", status: "pending" },
+    data: { status: "sending" },
+  });
+  if (!claim.count) return;
   const body = JSON.stringify({
     event: "lead.created",
     id: lead.id,
@@ -48,8 +50,9 @@ export async function deliverLead(lead: Lead) {
     });
     status = result.ok ? "sent" : "failed";
   } catch {}
-  await db.delivery.create({
-    data: { leadId: lead.id, adapter: "crm-webhook", status },
+  await db.delivery.updateMany({
+    where: { leadId: lead.id, adapter: "crm-webhook", status: "sending" },
+    data: { status },
   });
 }
 export async function sendTelegram(chatId: string, text: string) {
