@@ -6,7 +6,7 @@ AI-powered business chatbot with CRM, lead qualification, knowledge base and hum
 
 ![Рабочее пространство LeadMind](docs/portfolio/01-dashboard.png)
 
-Учебно-коммерческий демонстрационный продукт [zaxdev](https://github.com/hmsusbusas-png). «Нова Системы», имена и исходные заявки вымышлены. Репозиторий можно использовать как основу заказного решения; показатели демо не являются результатами реального бизнеса.
+Учебно-коммерческий демонстрационный продукт [zaxdev](https://github.com/zaxdevv). «Нова Системы», имена и исходные заявки вымышлены. Репозиторий можно использовать как основу заказного решения; показатели демо не являются результатами реального бизнеса.
 
 ## Задача бизнеса
 
@@ -28,7 +28,7 @@ AI-powered business chatbot with CRM, lead qualification, knowledge base and hum
 Нужен Node.js 22.12+ (рекомендуется 22 LTS), npm и Git. PostgreSQL для локального демо не требуется.
 
 ```sh
-git clone https://github.com/hmsusbusas-png/leadmind-crm.git
+git clone https://github.com/zaxdevv/leadmind-crm.git
 cd leadmind-crm
 npm ci
 cp .env.example .env

@@ -42,7 +42,7 @@ Next.js, React, TypeScript, Tailwind CSS, Prisma, SQLite/PostgreSQL, Zod, Telegr
 
 **Стек:** Next.js · TypeScript · Prisma · Telegram API
 
-**Ссылка:** https://github.com/hmsusbusas-png/leadmind-crm
+**Ссылка:** https://github.com/zaxdevv/leadmind-crm
 
 **Превью:** `01-dashboard.png`
 

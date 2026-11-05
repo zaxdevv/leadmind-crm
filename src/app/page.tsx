@@ -236,7 +236,7 @@ export default function Landing() {
       <footer className="marketing-footer">
         <Brand />
         <p>Проект zaxdev · Компания и примеры в демо вымышлены</p>
-        <a href="https://github.com/hmsusbusas-png/leadmind-crm">
+        <a href="https://github.com/zaxdevv/leadmind-crm">
           Код на GitHub <ArrowUpRight size={15} />
         </a>
       </footer>
