@@ -116,7 +116,7 @@ docker compose up --build -d
 docker compose logs -f app
 ```
 
-Приложение доступно на порту 3000. База находится в volume `leadmind-data`; миграции и безопасный seed выполняются при запуске. `docker compose down` сохраняет volume. Сборка использует Node 22 Debian и OpenSSL. Docker Engine должен быть запущен.
+Приложение доступно на порту 3000. База находится в volume `leadmind-data`; миграции и безопасный seed выполняются при запуске. `docker compose down` сохраняет volume. Сборка использует Node 22.23.4 Debian и OpenSSL. Сборка и запуск выполняются от непривилегированного пользователя `node` (UID 1000); `/app` и `/data` принадлежат ему. GitHub Actions дополнительно проверяет запуск контейнера с новым volume и доступность demo-страницы. Docker Engine должен быть запущен.
 
 ## Telegram
 
